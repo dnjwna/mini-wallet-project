@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background-color: #070809;
+    color: #f2f3f5;
+    font-family: 'Inter', sans-serif;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(52, 211, 153, 0.6);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+}
+
+@layer components {
+  .panel {
+    background: #101214;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .panel-raised {
+    background: #15181b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .input-flat {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .input-flat:focus {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(52, 211, 153, 0.45);
+  }
+}
