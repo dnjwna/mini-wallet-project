@@ -4,7 +4,7 @@ return [
     'paths' => ['api/*'],
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => ['https://mini-wallet-project.vercel.app/'],
 
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
