@@ -4,8 +4,8 @@
 
 Sistem dompet digital sederhana dengan REST API yang aman (transactional integrity) dan dashboard SPA — dibangun untuk menunjukkan penguasaan authentication, database transaction safety, validasi ketat, dan clean architecture dalam satu siklus pengembangan penuh.
 
-**🔗 Live Demo:** `https://mini-wallet-project.vercel.app/`
-**📡 Backend API:** `https://mini-wallet-project-production.up.railway.app/`
+**🔗 Live Demo:** `[https://mini-wallet-project.vercel.app/](https://mini-wallet-project.vercel.app/)`
+**📡 Backend API:** `[https://mini-wallet-project-production.up.railway.app/](https://mini-wallet-project-production.up.railway.app/)`
 
 ---
 
