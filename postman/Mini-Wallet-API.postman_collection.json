@@ -1,0 +1,382 @@
+{
+  "info": {
+    "name": "Mini Wallet API",
+    "description": "Take Home Test - Mini Wallet API & Dashboard. Dua user (A & B) dipakai biar skenario transfer + scoping security bisa ditest end-to-end. Jalankan folder 'Setup' dulu sebelum yang lain.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Setup (run this first)",
+      "item": [
+        {
+          "name": "Register User A",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Danu\",\n  \"username\": \"danu\",\n  \"email\": \"{{user_a_email}}\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/register", "host": ["{{base_url}}"], "path": ["register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.token) { pm.environment.set('token_a', body.data.token); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register User B",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rina\",\n  \"username\": \"rina\",\n  \"email\": \"{{user_b_email}}\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/register", "host": ["{{base_url}}"], "path": ["register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.token) { pm.environment.set('token_b', body.data.token); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Topup User A (initial balance)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token_a}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 500000\n}" },
+            "url": { "raw": "{{base_url}}/topup", "host": ["{{base_url}}"], "path": ["topup"] }
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login - success",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{user_a_email}}\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/login", "host": ["{{base_url}}"], "path": ["login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Token returned', () => pm.expect(body.data.token).to.be.a('string'));",
+                  "pm.environment.set('token_a', body.data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - wrong password (401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"login\": \"{{user_a_email}}\",\n  \"password\": \"salahbanget\"\n}" },
+            "url": { "raw": "{{base_url}}/login", "host": ["{{base_url}}"], "path": ["login"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 401', () => pm.response.to.have.status(401));"] } }]
+        },
+        {
+          "name": "Register - invalid email format (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"username\": \"testuser1\",\n  \"email\": \"user@\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/register", "host": ["{{base_url}}"], "path": ["register"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 422', () => pm.response.to.have.status(422));", "pm.test('Error mentions email', () => pm.expect(pm.response.json().errors).to.have.property('email'));"] } }]
+        },
+        {
+          "name": "Register - password less than 8 chars (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"username\": \"testuser2\",\n  \"email\": \"testuser2@test.com\",\n  \"password\": \"1234567\",\n  \"password_confirmation\": \"1234567\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/register", "host": ["{{base_url}}"], "path": ["register"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 422', () => pm.response.to.have.status(422));", "pm.test('Error mentions password', () => pm.expect(pm.response.json().errors).to.have.property('password'));"] } }]
+        },
+        {
+          "name": "Register - username already used (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Duplicate Danu\",\n  \"username\": \"danu\",\n  \"email\": \"danu2@test.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/register", "host": ["{{base_url}}"], "path": ["register"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 422', () => pm.response.to.have.status(422));", "pm.test('Error mentions username', () => pm.expect(pm.response.json().errors).to.have.property('username'));"] } }]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "url": { "raw": "{{base_url}}/logout", "host": ["{{base_url}}"], "path": ["logout"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "2. Wallet",
+      "item": [
+        {
+          "name": "Get Balance - success",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "url": { "raw": "{{base_url}}/wallet", "host": ["{{base_url}}"], "path": ["wallet"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Has balance field', () => pm.expect(pm.response.json().data).to.have.property('balance'));"] } }]
+        },
+        {
+          "name": "Get Balance - no token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/wallet", "host": ["{{base_url}}"], "path": ["wallet"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 401', () => pm.response.to.have.status(401));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "3. Topup",
+      "item": [
+        {
+          "name": "Topup - success",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 100000\n}" },
+            "url": { "raw": "{{base_url}}/topup", "host": ["{{base_url}}"], "path": ["topup"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "Topup - amount as letters 'abc' (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": \"abc\"\n}" },
+            "url": { "raw": "{{base_url}}/topup", "host": ["{{base_url}}"], "path": ["topup"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 422', () => pm.response.to.have.status(422));", "pm.test('Message: Nominal harus berupa angka', () => pm.expect(pm.response.json().message || JSON.stringify(pm.response.json().errors)).to.include('angka'));"] } }]
+        },
+        {
+          "name": "Topup - amount empty '' (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": \"\"\n}" },
+            "url": { "raw": "{{base_url}}/topup", "host": ["{{base_url}}"], "path": ["topup"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 422', () => pm.response.to.have.status(422));"] } }]
+        },
+        {
+          "name": "Topup - amount with symbol '50.000,-' (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": \"50.000,-\"\n}" },
+            "url": { "raw": "{{base_url}}/topup", "host": ["{{base_url}}"], "path": ["topup"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 422', () => pm.response.to.have.status(422));"] } }]
+        },
+        {
+          "name": "Topup - negative amount (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": -50000\n}" },
+            "url": { "raw": "{{base_url}}/topup", "host": ["{{base_url}}"], "path": ["topup"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 422', () => pm.response.to.have.status(422));"] } }]
+        },
+        {
+          "name": "Topup - decimal amount 50000.50 (422, integer only)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 50000.50\n}" },
+            "url": { "raw": "{{base_url}}/topup", "host": ["{{base_url}}"], "path": ["topup"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 422', () => pm.response.to.have.status(422));"] } }]
+        },
+        {
+          "name": "Topup - exceeds max limit (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 999999999\n}" },
+            "url": { "raw": "{{base_url}}/topup", "host": ["{{base_url}}"], "path": ["topup"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 422', () => pm.response.to.have.status(422));", "pm.test('Message: melebihi batas maksimum', () => pm.expect(JSON.stringify(pm.response.json())).to.include('maksimum'));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "4. Transfer",
+      "item": [
+        {
+          "name": "Transfer - success (A -> B)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"target\": \"{{user_b_email}}\",\n  \"amount\": 50000,\n  \"description\": \"Bayar utang\"\n}" },
+            "url": { "raw": "{{base_url}}/transfer", "host": ["{{base_url}}"], "path": ["transfer"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "Transfer - insufficient balance (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"target\": \"{{user_b_email}}\",\n  \"amount\": 999999999\n}" },
+            "url": { "raw": "{{base_url}}/transfer", "host": ["{{base_url}}"], "path": ["transfer"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 400', () => pm.response.to.have.status(400));", "pm.test('Message: Saldo tidak cukup', () => pm.expect(pm.response.json().message).to.include('Saldo tidak cukup'));"] } }]
+        },
+        {
+          "name": "Transfer - recipient not found (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"target\": \"tidakada@nowhere.com\",\n  \"amount\": 10000\n}" },
+            "url": { "raw": "{{base_url}}/transfer", "host": ["{{base_url}}"], "path": ["transfer"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 400', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Transfer - amount as letters (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"target\": \"{{user_b_email}}\",\n  \"amount\": \"abc\"\n}" },
+            "url": { "raw": "{{base_url}}/transfer", "host": ["{{base_url}}"], "path": ["transfer"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 422', () => pm.response.to.have.status(422));"] } }]
+        },
+        {
+          "name": "Transfer - amount empty (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"target\": \"{{user_b_email}}\",\n  \"amount\": \"\"\n}" },
+            "url": { "raw": "{{base_url}}/transfer", "host": ["{{base_url}}"], "path": ["transfer"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 422', () => pm.response.to.have.status(422));"] } }]
+        },
+        {
+          "name": "Transfer - amount with symbol (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"target\": \"{{user_b_email}}\",\n  \"amount\": \"50.000,-\"\n}" },
+            "url": { "raw": "{{base_url}}/transfer", "host": ["{{base_url}}"], "path": ["transfer"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 422', () => pm.response.to.have.status(422));"] } }]
+        },
+        {
+          "name": "Transfer - no token (401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"target\": \"{{user_b_email}}\",\n  \"amount\": 10000\n}" },
+            "url": { "raw": "{{base_url}}/transfer", "host": ["{{base_url}}"], "path": ["transfer"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 401', () => pm.response.to.have.status(401));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "5. Transactions",
+      "item": [
+        {
+          "name": "Get History - User A (own data only)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_a}}" }],
+            "url": { "raw": "{{base_url}}/transactions", "host": ["{{base_url}}"], "path": ["transactions"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Returns array', () => pm.expect(pm.response.json().data).to.be.an('array'));"] } }]
+        },
+        {
+          "name": "Get History - User B (must NOT see User A's data)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_b}}" }],
+            "url": { "raw": "{{base_url}}/transactions", "host": ["{{base_url}}"], "path": ["transactions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array (manually verify in Postman UI: amounts should only reflect User B own wallet activity, e.g. the transfer_in of 50000 from User A - NOT any of User A topup records)', () => {",
+                  "  pm.expect(pm.response.json().data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get History - no token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/transactions", "host": ["{{base_url}}"], "path": ["transactions"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 401', () => pm.response.to.have.status(401));"] } }]
+        }
+      ]
+    }
+  ]
+}
